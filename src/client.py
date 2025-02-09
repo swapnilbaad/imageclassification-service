@@ -2,6 +2,7 @@ import argparse
 import csv
 import zmq
 import sys
+import configparser
 
 def parse_csv(file_path):
     """
@@ -32,16 +33,22 @@ def main():
         print("No URLs found in the CSV file.")
         sys.exit(1)
 
+    # Load configuration
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    server_req_address = config.get('client', 'server_req_address')
+    server_pub_address = config.get('client', 'server_pub_address')
+
     # Create ZeroMQ context
     context = zmq.Context()
 
     # Set up the REQ socket for sending URLs to the server
     req_socket = context.socket(zmq.REQ)
-    req_socket.connect("tcp://localhost:5555")
+    req_socket.connect(server_req_address)
 
     # Set up the SUB socket for receiving published results
     sub_socket = context.socket(zmq.SUB)
-    sub_socket.connect("tcp://localhost:5556")
+    sub_socket.connect(server_pub_address)
     sub_socket.setsockopt_string(zmq.SUBSCRIBE, "")  # Subscribe to all messages
 
     # Send the list of URLs as a REQuest
