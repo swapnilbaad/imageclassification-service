@@ -1,49 +1,53 @@
 # src/classifier.py
 import os
-import time
 import json
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from torchvision import models
-import io
-from image_fetcher import fetch_image
+import asyncio
+from image_fetcher import async_fetch_image
 
-# Load ImageNet class index mapping from JSON file.
-# Ensure that 'imagenet_class_index.json' is placed in the same directory as this file.
+# Load the ImageNet class index mapping
 imagenet_json = os.path.join(os.path.dirname(__file__), 'imagenet_class_index.json')
 with open(imagenet_json) as f:
     class_idx = json.load(f)
 
+# Set up the device and load a pre-trained model (MobileNetV2)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = models.mobilenet_v2(pretrained=True).to(device)
 model.eval()
 
-# Image transformation pipeline
+# Define the image transformation pipeline
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225]),
 ])
 
-def classify_image(url, pub_socket):
-    try:
-        image = fetch_image(url)
-        if image is None:
-            raise ValueError("Failed to fetch image")
-        
-        # Artificial delay to simulate long processing (e.g., 5 seconds)
-        time.sleep(5)
-        image = transform(image).unsqueeze(0).to(device)
-        
-        with torch.no_grad():
-            outputs = model(image)
-            _, predicted = outputs.max(1)
-        
-        pred_class = predicted.item()
-        # Retrieve the human-readable label from the mapping.
-        label = class_idx[str(pred_class)][1]
+def classify_image_sync(image: Image.Image) -> str:
+    """
+    Synchronously classify an image using the pre-trained model.
+    """
+    image = transform(image).unsqueeze(0).to(device)
+    with torch.no_grad():
+        outputs = model(image)
+        _, predicted = outputs.max(1)
+    pred_class = predicted.item()
+    label = class_idx[str(pred_class)][1]
+    return label
+
+async def classify_image_async(url: str, pub_socket, loop: asyncio.AbstractEventLoop):
+    """
+    Asynchronously fetch the image, run the classification (in an executor),
+    and publish the result.
+    """
+    image = await async_fetch_image(url)
+    if image is None:
+        result = {"url": url, "error": "Failed to fetch image"}
+    else:
+        # Run the synchronous classification in the executor
+        label = await loop.run_in_executor(None, classify_image_sync, image)
         result = {"url": url, "class": label}
-        pub_socket.send_json(result)  # Publish result
-    except Exception as e:
-        pub_socket.send_json({"url": url, "error": str(e)})
+    await pub_socket.send_json(result)

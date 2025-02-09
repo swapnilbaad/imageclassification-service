@@ -1,6 +1,8 @@
+aiohttp
 torch
 torchvision
 pillow
 requests
 zmq
 pytest
+tornado>=6.1  # Required for zmq.asyncio on Windows
