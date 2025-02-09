@@ -1,40 +1,42 @@
-### src/server.py
-import zmq
-import concurrent.futures
-from classifier import classify_image
-from image_fetcher import fetch_image
+# src/server.py
+import asyncio
+import sys
+
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+import asyncio
+import zmq.asyncio
 import configparser
-import os
-# Load configuration
-config = configparser.ConfigParser()
-config_path = os.path.join(os.path.dirname(__file__), '../config.ini')
-config.read('config.ini')
+from classifier import classify_image_async
 
-rep_address = config.get('server', 'rep_address')
-pub_address = config.get('server', 'pub_address')
-max_workers = config.getint('general', 'max_workers')
+async def main():
+    # Load configuration from config.ini
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    rep_address = config.get('server', 'rep_address')
+    pub_address = config.get('server', 'pub_address')
 
-# ZeroMQ Context
-context = zmq.Context()
+    # Create asynchronous ZeroMQ context and sockets
+    ctx = zmq.asyncio.Context()
+    rep_socket = ctx.socket(zmq.REP)
+    rep_socket.bind(rep_address)
+    pub_socket = ctx.socket(zmq.PUB)
+    pub_socket.bind(pub_address)
 
-# REP socket for receiving requests
-rep_socket = context.socket(zmq.REP)
-rep_socket.bind(rep_address)
+    loop = asyncio.get_event_loop()
 
-# PUB socket for publishing results
-pub_socket = context.socket(zmq.PUB)
-pub_socket.bind(pub_address)
+    print(f"Toy-service started, listening on {rep_address}")
+    while True:
+        # Await a JSON message from a client (a list of image URLs)
+        message = await rep_socket.recv_json()
+        urls = message.get("urls", [])
+        # Immediately send an acknowledgment back to the client
+        await rep_socket.send_json({"status": "received", "num_urls": len(urls)})
 
-# Worker pool for processing images
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+        # For each URL, schedule the classification task concurrently
+        for url in urls:
+            asyncio.create_task(classify_image_async(url, pub_socket, loop))
 
-print("Toy-service started, listening on port 5555")
-while True:
-    # Receive list of image URLs
-    message = rep_socket.recv_json()
-    urls = message.get("urls", [])
-    rep_socket.send_json({"status": "received", "num_urls": len(urls)})
-    
-    # Process each image asynchronously
-    for url in urls:
-        executor.submit(classify_image, url, pub_socket)
+if __name__ == '__main__':
+    asyncio.run(main())
