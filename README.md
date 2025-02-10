@@ -66,7 +66,7 @@ https://picsum.photos/200/300
 The client reads these URLs, sends them to the server for classification, and listens for results.
 
 ### About `https://picsum.photos/200/300`
-[`https://picsum.photos`](https://picsum.photos/) is a free image placeholder service that provides random images with the specified width and height. The URL fetches a random image with dimensions **200x300 pixels**. This can be useful for testing the image classification service without needing specific image files.
+[`https://picsum.photos`](https://picsum.photos/) is a free image placeholder service that provides random images with the specified width and height. The URL fetches a random image with dimensions **200x300 pixels**.
 
 ## Sample Output Format
 When the client runs and receives classification results from the server, the output will look like this:

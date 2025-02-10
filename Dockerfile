@@ -12,7 +12,8 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 
 # Install the Python dependencies.
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip \
+ && pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
 # Copy the rest of the application code into the container.
 COPY . /app/
