@@ -11,21 +11,25 @@ import zmq.asyncio
 import configparser
 import sys
 import asyncio
+import os
 
-def parse_csv(file_path: str):
+def parse_csv(file_path):
     """
-    Parse the CSV file and return a list of image URLs.
+    Reads a CSV file and extracts valid URLs.
+
+    :param file_path: Path to the CSV file
+    :return: List of valid URLs
     """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+
     urls = []
-    try:
-        with open(file_path, newline='') as csvfile:
-            reader = csv.reader(csvfile)
-            for row in reader:
-                if row:
-                    urls.append(row[0])
-    except Exception as e:
-        print(f"Error reading CSV file: {e}")
-        sys.exit(1)
+    with open(file_path, "r", encoding="utf-8") as file:
+        for line in file:
+            line = line.strip()  # Remove extra spaces and newlines
+            if line and (line.startswith("http://") or line.startswith("https://")):
+                urls.append(line)
+    
     return urls
 
 async def main():

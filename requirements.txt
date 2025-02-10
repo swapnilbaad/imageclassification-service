@@ -5,4 +5,6 @@ pillow
 requests
 zmq
 pytest
+pytest-asyncio
+aioresponses
 tornado>=6.1  # Required for zmq.asyncio on Windows

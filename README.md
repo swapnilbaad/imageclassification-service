@@ -7,10 +7,9 @@ A service that accepts a list of image URLs via a ZeroMQ REQ/REP socket, fetches
 This project demonstrates how to build an asynchronous, responsive image classification service using Python, ZeroMQ, and a pre-trained CNN (MobileNetV2). It is structured into several modules:
 
 - **Server (`src/server.py`):**  
-  - Receives image URL lists from clients.
-  - Immediately acknowledges each request.
+  - Receives image URL lists from clients, Immediately acknowledges each request.
   - Offloads image fetching and classification tasks to a worker thread pool.
-  - Publishes classification results (with human-readable labels) via a PUB socket.
+  - Publishes classification results via a PUB socket.
 
 - **Classifier (`src/classifier.py`):**  
   - Loads a pre-trained MobileNetV2 model.
@@ -21,8 +20,7 @@ This project demonstrates how to build an asynchronous, responsive image classif
   - Downloads images from provided URLs.
 
 - **Client (`src/client.py`):**  
-  - Parses a CSV file containing image URLs.
-  - Sends the URLs to the server.
+  - Parses a CSV file containing image URLs, Sends the URLs to the server.
   - Listens for and prints classification results.
 
 
@@ -51,7 +49,7 @@ docker run -p 5555:5555 -p 5556:5556 image-classification-service
 python src/client.py urls.csv
 ```
 ## Running Tests
-To ensure the correctness of the code, we have a test suite using `pytest`.
+To ensure the correctness of the code, I have used `pytest`.
 
 ### Running Tests in Docker
 If you want to run tests inside a Docker container, use the following command:
@@ -68,7 +66,24 @@ https://picsum.photos/200/300
 The client reads these URLs, sends them to the server for classification, and listens for results.
 
 ### About `https://picsum.photos/200/300`
-[`https://picsum.photos`](https://picsum.photos/) is a free image placeholder service that provides random images with the specified width and height. The URL `https://picsum.photos/200/300` fetches a random image with dimensions **200x300 pixels**. This can be useful for testing the image classification service without needing specific image files.
+[`https://picsum.photos`](https://picsum.photos/) is a free image placeholder service that provides random images with the specified width and height. The URL fetches a random image with dimensions **200x300 pixels**. This can be useful for testing the image classification service without needing specific image files.
+
+## Sample Output Format
+When the client runs and receives classification results from the server, the output will look like this:
+```json
+{
+  "url": "https://picsum.photos/200/300",
+  "class": "tabby_cat"
+}
+```
+Each JSON response consists of:
+- **`url`**: The original image URL submitted for classification.
+- **`class`**: The predicted category for the image.
+
+## Output Image Snapshot
+Below is an example snapshot of an image processed by the classification model:
+
+![Sample Output Image](docs/snapshot.png)
 
 # Running Locally with Virtual Environment
 
